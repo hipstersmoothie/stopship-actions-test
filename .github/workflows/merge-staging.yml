@@ -85,4 +85,9 @@ jobs:
                         ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
                         exit 1;
                       fi
+
+                      # If there is no stopship PR create one
+                      if [[ -z $STOPSHIP_PR ]]; then
+                        node ./create-stopship-pr.js
+                      fi
                   fi

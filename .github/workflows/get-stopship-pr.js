@@ -6,12 +6,14 @@ const octokit = new Octokit({ auth: process.env.GH_TOKEN || process.env.GITHUB_T
 
 async function run() {
     const pulls = await octokit.paginate(octokit.pulls.list, {
-        owner: 'descriptinc',
-        repo: 'descript-web-v2',
+        owner: 'hipstersmoothie',
+        repo: 'stopship-actions-test',
     });
     const stopshipPr = pulls.find((pull) => pull.head.ref === 'stopship');
 
-    console.log(stopshipPr.number);
+    if (stopshipPr?.number) {
+      console.log(stopshipPr.number);
+    }
 }
 
 run();
