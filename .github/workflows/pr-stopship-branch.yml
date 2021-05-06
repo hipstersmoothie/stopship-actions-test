@@ -31,7 +31,6 @@ jobs:
                   git checkout stopship;
 
                   FIRST_COMMIT_IN_BRANCH=`git log origin/main..HEAD --format=format:%H | tail -n 1`;
-                  FIRST_COMMIT_NOT_IN_BRANCH=`git log --pretty=%P -1 $FIRST_COMMIT_IN_BRANCH | tail -n 1`
-                  CHANGELOG=`~/auto changelog --dry-run --quiet --from $FIRST_COMMIT_NOT_IN_BRANCH`
+                  CHANGELOG=`~/auto changelog --dry-run --quiet --from $FIRST_COMMIT_IN_BRANCH`
 
                   ~/auto pr-body --context changelog --message "$CHANGELOG"
