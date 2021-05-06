@@ -5,7 +5,7 @@ on:
         types: [opened, synchronize]
 
 jobs:
-    check-can-cherry-pick:
+    generate-changelog:
         runs-on: ubuntu-18.04
         if: github.event.pull_request.head.ref == 'stopship'
         steps:
@@ -27,7 +27,7 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  FIRST_COMMIT_IN_BRANCH=`git log staging..stopship-action --format=format:%H | tail -n 1`;
+                  FIRST_COMMIT_IN_BRANCH=`git log staging..HEAD --format=format:%H | tail -n 1`;
                   FIRST_COMMIT_NOT_IN_BRANCH=`git log --pretty=%P -1 $FIRST_COMMIT_IN_BRANCH | tail -n 1`
                   CHANGELOG=`~/auto changelog --dry-run --quiet --from $FIRST_COMMIT_NOT_IN_BRANCH`
 
