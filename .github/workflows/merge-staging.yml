@@ -22,12 +22,30 @@ jobs:
                   git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git config --global user.name "github-actions[bot]"
 
+            - name: restore workspace cache
+              uses: actions/cache@master
+              id: cache
+              with:
+                  path: |
+                      node_modules
+                      packages/*/node_modules
+                  key: node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-${{ hashFiles('**/yarn.lock', 'patches/*.patch') }}
+                  restore-keys: |
+                      node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-
+                      node-modules-v2-${{ runner.os }}-
+
+            - run: yarn install --frozen-lockfile --network-timeout 9000000
+              if: steps.cache.outputs.cache-hit != 'true'
+              env:
+                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+                  SKIP_DOWNLOAD_MEDIA_ENGINE: true
+
             - uses: actions-ecosystem/action-get-merged-pull-request@v1
               id: get-merged-pull-request
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Check if last merge was a stopship PR
+            - name: Attempt to pick merge commit to stopship branch
               shell: bash {0}
               env:
                   MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
@@ -50,7 +68,7 @@ jobs:
                   # If the last PR merged has the stopship label
                   if [ $exit_status -eq 0 ]; then
                       COMMIT_TO_PICK=`git rev-parse HEAD`;
-                      STOPSHIP_PR=`node ../../scripts/get-stopship-pr.js`;
+                      STOPSHIP_PR=`node ./get-stopship-pr.js`;
 
                       git checkout stopship;
                       git cherry-pick -m 1 $COMMIT_TO_PICK;
