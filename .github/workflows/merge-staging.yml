@@ -71,11 +71,13 @@ jobs:
                       STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
 
                       git checkout stopship;
+                      echo "Attempting cherry pick..."
                       git cherry-pick -m 1 $COMMIT_TO_PICK;
                       pick_exit_status=$?;
 
                       # Cherry pick successful, try to push commit.
                       if [ $pick_exit_status -eq 0 ]; then
+                          echo "Pushing stopship branch..."
                           git push origin stopship;
                           push_exit_status=$?;
                       fi
@@ -84,11 +86,14 @@ jobs:
                         # If there is no stopship PR and git operations failed, create one with an empty commit.
                         # The empty commit enables us to open a PR to comment on.
                         if [ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]; then
+                          echo "Created empty commit due to previous failures"
                           git commit --allow-empty -m "Create stopship PR";
                         fi
 
+                        echo "Creating stopship PR..."
                         node ./.github/workflows/scripts/create-stopship-pr.js;
                         STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
+                        echo "Stopship PR created: #$STOPSHIP_PR"
                       fi
 
                       # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
