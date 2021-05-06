@@ -24,6 +24,7 @@ jobs:
                   git config --global user.name "github-actions[bot]"
 
             - name: Check if we can cherry pick the commit
+              shell: bash {0}
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
@@ -46,11 +47,12 @@ jobs:
                   fi
 
                   git checkout $BRANCH_TARGET;
-                  (git cherry-pick -m 1 $DUMMY_MERGE_COMMIT) || exit_status=$?;
+                  git cherry-pick -m 1 $DUMMY_MERGE_COMMIT
+                  exit_status=$?;
 
                   if [ $exit_status -eq 1 ]; then
                       ~/auto comment --context stopship -m "There are merge conflict with the \`$BRANCH_TARGET\` branch, you will have to manually cherry-pick the merge commit."
                       exit 1;
                   fi
 
-                  ~/auto comment --context stopship -m "Success! Pull Request has no conflicts with the \`$BRANCH_TARGET\` branch and will be automatically cherry-picked to a \`stopship\` on merge. :tada:"
+                  ~/auto comment --context stopship -m "Success! Pull Request has no conflicts with the \`$BRANCH_TARGET\` branch and will be automatically cherry-picked to a \`stopship\` branch on merge. :tada:"
