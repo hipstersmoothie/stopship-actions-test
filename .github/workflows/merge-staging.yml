@@ -44,7 +44,7 @@ jobs:
                   fi
 
                   MERGED_PR_NUMBER=`git log -1 --pretty=%B | head -1 | sed -r 's/Merge pull request #([0-9]+).*/\1/'`;
-                  yarn auto label --pr $MERGED_PR_NUMBER --exists stopship;
+                  ~/auto label --pr $MERGED_PR_NUMBER --exists stopship;
                   exit_status=$?;
 
                   # If the last PR merged has the stopship label
