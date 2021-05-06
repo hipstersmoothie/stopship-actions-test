@@ -68,7 +68,7 @@ jobs:
                   # If the last PR merged has the stopship label
                   if [ $exit_status -eq 0 ]; then
                       COMMIT_TO_PICK=`git rev-parse HEAD`;
-                      STOPSHIP_PR=`node ./get-stopship-pr.js`;
+                      STOPSHIP_PR=`node ./.github/workflows/get-stopship-pr.js`;
 
                       git checkout stopship;
                       git cherry-pick -m 1 $COMMIT_TO_PICK;
@@ -88,6 +88,6 @@ jobs:
 
                       # If there is no stopship PR create one
                       if [[ -z $STOPSHIP_PR ]]; then
-                        node ./create-stopship-pr.js
+                        node ./.github/workflows/create-stopship-pr.js
                       fi
                   fi
