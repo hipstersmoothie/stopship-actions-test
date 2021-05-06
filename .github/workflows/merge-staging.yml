@@ -28,6 +28,7 @@ jobs:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Check if last merge was a stopship PR
+              shell: bash {0}
               env:
                   MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -43,14 +44,7 @@ jobs:
                   fi
 
                   MERGED_PR_NUMBER=`git log -1 --pretty=%B | head -1 | sed -r 's/Merge pull request #([0-9]+).*/\1/'`;
-
-                  function checkLabel {
-                      yarn auto label --pr $MERGED_PR_NUMBER --exists stopship 1>/dev/null 2>/dev/null
-                  }
-
-                  # Catch the exit code the the label command
-                  trap checkLabel EXIT;
-                  checkLabel;
+                  yarn auto label --pr $MERGED_PR_NUMBER --exists stopship;
                   exit_status=$?;
 
                   # If the last PR merged has the stopship label
@@ -59,11 +53,13 @@ jobs:
                       STOPSHIP_PR=`node ../../scripts/get-stopship-pr.js`;
 
                       git checkout stopship;
-                      (git cherry-pick -m 1 $COMMIT_TO_PICK) || exit_status=$?;
+                      git cherry-pick -m 1 $COMMIT_TO_PICK;
+                      exit_status=$?;
 
                       # Cherry pick successful, try to push commit.
                       if [ $exit_status -eq 0 ]; then
-                          (git push origin stopship) || exit_status=$?;
+                          git push origin stopship;
+                          exit_status=$?;
                       fi
 
                       # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
