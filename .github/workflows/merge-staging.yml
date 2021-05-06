@@ -5,7 +5,7 @@ on:
         branches:
             - staging
 jobs:
-    check-can-cherry-pick:
+    attempt-cherry-pick:
         runs-on: ubuntu-18.04
         steps:
             - uses: actions/checkout@v2
@@ -43,7 +43,15 @@ jobs:
                   fi
 
                   MERGED_PR_NUMBER=`git log -1 --pretty=%B | head -1 | sed -r 's/Merge pull request #([0-9]+).*/\1/'`;
-                  (~/auto label --pr $MERGED_PR_NUMBER --exists stopship) || exit_status=$?;
+
+                  function checkLabel {
+                      yarn auto label --pr $MERGED_PR_NUMBER --exists stopship 1>/dev/null 2>/dev/null
+                  }
+
+                  # Catch the exit code the the label command
+                  trap checkLabel EXIT;
+                  checkLabel;
+                  exit_status=$?;
 
                   # If the last PR merged has the stopship label
                   if [ $exit_status -eq 0 ]; then
