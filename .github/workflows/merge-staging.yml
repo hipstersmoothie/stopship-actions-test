@@ -49,7 +49,7 @@ jobs:
               shell: bash {0}
               env:
                   MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
               run: |
                   # Verify the stopship branch exists
                   REMOTE_EXISTS=`git ls-remote --heads origin stopship`;
