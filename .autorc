@@ -1,0 +1,11 @@
+{
+  "prereleaseBranches": ["beta", "staging"],
+  "labels": [
+     {
+      "name": "stopship",
+      "changelogTitle": "🛑 Stopship!",
+      "description": "This PR made a change that should be cherry-picked to master",
+      "releaseType": "patch"
+    }
+  ]
+}
