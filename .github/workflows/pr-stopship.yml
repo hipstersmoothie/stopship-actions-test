@@ -1,0 +1,56 @@
+name: pr-stopship
+
+on:
+    pull_request:
+        types: [opened, labeled, synchronize]
+
+jobs:
+    check-can-cherry-pick:
+        runs-on: ubuntu-18.04
+        if: contains(github.event.pull_request.labels.*.name, 'stopship')
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Prepare repository
+              run: |
+                  git fetch --unshallow --tags;
+
+                  # Download a platform specific version of auto
+                  curl -vkL -o - https://github.com/intuit/auto/releases/download/v10.24.0/auto-linux.gz | gunzip > ~/auto
+                  # Make auto executable
+                  chmod a+x ~/auto
+
+                  git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git config --global user.name "github-actions[bot]"
+
+            - name: Check if we can cherry pick the commit
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  # Make sure the current branch exists
+                  git checkout -b ${{github.event.pull_request.head.ref}}
+
+                  # Create a dummy merge commit
+                  git checkout staging;
+                  git merge --no-ff --no-verify -m "testing cherry pick"  ${{github.event.pull_request.head.ref}};
+                  DUMMY_MERGE_COMMIT=`git rev-parse HEAD`;
+
+                  # Verify we can pick that commit to stopship branch if it exists
+                  # or master if it doesn't
+                  REMOTE_EXISTS=`git ls-remote --heads origin stopship`;
+
+                  if [[ -z $REMOTE_EXISTS ]]; then
+                    BRANCH_TARGET=main;
+                  else
+                    BRANCH_TARGET=stopship;
+                  fi
+
+                  git checkout $BRANCH_TARGET;
+                  (git cherry-pick -m 1 $DUMMY_MERGE_COMMIT) || exit_status=$?;
+
+                  if [ $exit_status -eq 1 ]; then
+                      ~/auto comment --context stopship -m "There are merge conflict with the \`$BRANCH_TARGET\` branch, you will have to manually cherry-pick the merge commit."
+                      exit 1;
+                  fi
+
+                  ~/auto comment --context stopship -m "Success! Pull Request has no conflicts with the \`$BRANCH_TARGET\` branch and will be automatically cherry-picked on merge. :tada:"

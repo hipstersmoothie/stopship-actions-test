@@ -1,0 +1,34 @@
+name: pr-stopship-branch
+
+on:
+    pull_request:
+        types: [opened, synchronize]
+
+jobs:
+    check-can-cherry-pick:
+        runs-on: ubuntu-18.04
+        if: github.event.pull_request.head.ref == 'stopship'
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Prepare repository
+              run: |
+                  git fetch --unshallow --tags;
+
+                  # Download a platform specific version of auto
+                  curl -vkL -o - https://github.com/intuit/auto/releases/download/v10.24.0/auto-linux.gz | gunzip > ~/auto
+                  # Make auto executable
+                  chmod a+x ~/auto
+
+                  git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git config --global user.name "github-actions[bot]"
+
+            - name: Generate a changelog for the PRs included in this stopship branch
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  FIRST_COMMIT_IN_BRANCH=`git log staging..stopship-action --format=format:%H | tail -n 1`;
+                  FIRST_COMMIT_NOT_IN_BRANCH=`git log --pretty=%P -1 $FIRST_COMMIT_IN_BRANCH | tail -n 1`
+                  CHANGELOG=`~/auto changelog --dry-run --quiet --from $FIRST_COMMIT_NOT_IN_BRANCH`
+
+                  ~/auto pr-body --context changelog --message $CHANGELOG
