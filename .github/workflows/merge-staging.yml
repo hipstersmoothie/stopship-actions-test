@@ -61,33 +61,39 @@ jobs:
                     git checkout staging;
                   fi
 
-                  MERGED_PR_NUMBER=`git log -1 --pretty=%B | head -1 | sed -r 's/Merge pull request #([0-9]+).*/\1/'`;
+                  MERGED_PR_NUMBER=`git log -1 --pretty=%B | head -1 | sed -r 's/Merge pull request #([0-9]+).*/\1/'` |  | sed -r 's/.* \(#([0-9]+)\)/\1/';
                   ~/auto label --pr $MERGED_PR_NUMBER --exists stopship;
-                  exit_status=$?;
+                  label_exit_status=$?;
 
                   # If the last PR merged has the stopship label
-                  if [ $exit_status -eq 0 ]; then
+                  if [ $label_exit_status -eq 0 ]; then
                       COMMIT_TO_PICK=`git rev-parse HEAD`;
-                      STOPSHIP_PR=`node ./.github/workflows/get-stopship-pr.js`;
+                      STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
 
                       git checkout stopship;
                       git cherry-pick -m 1 $COMMIT_TO_PICK;
-                      exit_status=$?;
+                      pick_exit_status=$?;
 
                       # Cherry pick successful, try to push commit.
-                      if [ $exit_status -eq 0 ]; then
+                      if [ $pick_exit_status -eq 0 ]; then
                           git push origin stopship;
-                          exit_status=$?;
+                          push_exit_status=$?;
+                      fi
+
+                      if [[ -z $STOPSHIP_PR ]]; then
+                        # If there is no stopship PR and git operations failed, create one with an empty commit.
+                        # The empty commit enables us to open a PR to comment on.
+                        if [ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]; then
+                          git commit --allow-empty -m "Create stopship PR";
+                        fi
+
+                        node ./.github/workflows/scripts/create-stopship-pr.js;
+                        STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
                       fi
 
                       # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
-                      if [ $exit_status -eq 1 ]; then
+                      if [ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]; then
                         ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
                         exit 1;
-                      fi
-
-                      # If there is no stopship PR create one
-                      if [[ -z $STOPSHIP_PR ]]; then
-                        node ./.github/workflows/create-stopship-pr.js
                       fi
                   fi
