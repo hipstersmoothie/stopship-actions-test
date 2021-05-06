@@ -86,11 +86,12 @@ jobs:
                         # If there is no stopship PR and picked failed, create empty commit and push.
                         # The empty commit enables us to open a PR to comment on.
                         if [[ $pick_exit_status -eq 1 ]]; then
-                          echo "Created empty commit due to previous failures";
                           git reset --hard HEAD;
-                          git commit --allow-empty -m "Create stopship PR";
-                          git push origin stopship;
                         fi
+
+                        echo "Creating empty for stopship PR...";
+                        git commit --allow-empty -m "Create stopship PR";
+                        git push origin stopship;
 
                         echo "Creating stopship PR..."
                         node ./.github/workflows/scripts/create-stopship-pr.js;
