@@ -2,7 +2,7 @@ name: pr-stopship-branch
 
 on:
     pull_request:
-        types: [opened, synchronize]
+        types: [opened, edited]
 
 jobs:
     generate-changelog:
