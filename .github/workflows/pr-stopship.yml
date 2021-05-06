@@ -13,7 +13,7 @@ jobs:
 
             - name: Prepare repository
               run: |
-                  git fetch --unshallow --tags;
+                  git fetch --unshallow;
 
                   # Download a platform specific version of auto
                   curl -vkL -o - https://github.com/intuit/auto/releases/download/v10.24.0/auto-linux.gz | gunzip > ~/auto
@@ -53,4 +53,4 @@ jobs:
                       exit 1;
                   fi
 
-                  ~/auto comment --context stopship -m "Success! Pull Request has no conflicts with the \`$BRANCH_TARGET\` branch and will be automatically cherry-picked on merge. :tada:"
+                  ~/auto comment --context stopship -m "Success! Pull Request has no conflicts with the \`$BRANCH_TARGET\` branch and will be automatically cherry-picked to a \`stopship\` on merge. :tada:"
