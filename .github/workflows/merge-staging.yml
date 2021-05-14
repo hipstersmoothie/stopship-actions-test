@@ -9,6 +9,8 @@ jobs:
         runs-on: ubuntu-18.04
         steps:
             - uses: actions/checkout@v2
+              with:
+                github_token: ${{ secrets.GH_TOKEN }}
 
             - name: Prepare repository
               env:
