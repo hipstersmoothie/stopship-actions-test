@@ -11,6 +11,8 @@ jobs:
             - uses: actions/checkout@v2
 
             - name: Prepare repository
+              env:
+                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
               run: |
                   git fetch --unshallow;
 
@@ -19,8 +21,8 @@ jobs:
                   # Make auto executable
                   chmod a+x ~/auto
 
-                  git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "lisowski54@gmail.com"
+                  git config --global user.name "Andrew Lisowski"
 
             - name: restore workspace cache
               uses: actions/cache@master
@@ -50,7 +52,8 @@ jobs:
               env:
                   MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
                   GH_TOKEN: ${{ secrets.GH_TOKEN }}
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+                  COMMENT_GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   # Verify the stopship branch exists
                   REMOTE_EXISTS=`git ls-remote --heads origin stopship`;
@@ -95,7 +98,7 @@ jobs:
                       # Cherry pick successful, try to push commit.
                       if [ $pick_exit_status -eq 0 ]; then
                           echo "Pushing stopship branch..."
-                          git push origin stopship;
+                          git push https://x-access-token:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
                           push_exit_status=$?;
                       fi
 
@@ -108,7 +111,7 @@ jobs:
 
                         echo "Creating empty for stopship PR...";
                         git commit --allow-empty -m "Create stopship PR";
-                        git push origin stopship;
+                        git push https://x-access-token:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
 
                         echo "Creating stopship PR..."
                         node ./.github/workflows/scripts/create-stopship-pr.js;
@@ -118,7 +121,7 @@ jobs:
 
                       # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
                       if [[ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]]; then
-                        GH_TOKEN=$GITHUB_TOKEN ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
+                        GH_TOKEN=$COMMENT_GH_TOKEN ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
                         exit 1;
                       fi
                   fi
