@@ -1,128 +1,61 @@
 name: merge staging
 
 on:
-    push:
-        branches:
-            - staging
+  push:
+    branches:
+      - staging
 jobs:
-    attempt-cherry-pick:
-        runs-on: ubuntu-18.04
-        steps:
-            - uses: actions/checkout@v2
-              with:
-                  token: ${{ secrets.GH_TOKEN }}
+  attempt-cherry-pick:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
-            - name: Prepare repository
-              env:
-                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-              run: |
-                  git fetch --unshallow;
+      - name: Prepare repository
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git fetch --unshallow;
 
-                  # Download a platform specific version of auto
-                  curl -vkL -o - https://github.com/intuit/auto/releases/download/v10.24.0/auto-linux.gz | gunzip > ~/auto
-                  # Make auto executable
-                  chmod a+x ~/auto
+          # Download a platform specific version of auto
+          curl -vkL -o - https://github.com/intuit/auto/releases/download/v10.24.0/auto-linux.gz | gunzip > ~/auto
+          # Make auto executable
+          chmod a+x ~/auto
 
-                  git config --global user.email "hipstersmoothie@users.noreply.github.com"
-                  git config --global user.name "Andrew Lisowski"
+          git config --global user.email "hipstersmoothie@users.noreply.github.com"
+          git config --global user.name "Andrew Lisowski"
 
-            - name: restore workspace cache
-              uses: actions/cache@master
-              id: cache
-              with:
-                  path: |
-                      node_modules
-                      packages/*/node_modules
-                  key: node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-${{ hashFiles('**/yarn.lock', 'patches/*.patch') }}
-                  restore-keys: |
-                      node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-
-                      node-modules-v2-${{ runner.os }}-
+      - name: restore workspace cache
+        uses: actions/cache@master
+        id: cache
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-${{ hashFiles('**/yarn.lock', 'patches/*.patch') }}
+          restore-keys: |
+            node-modules-v2-${{ runner.os }}-${{ steps.node-version.outputs.version }}-
+            node-modules-v2-${{ runner.os }}-
 
-            - run: yarn install --frozen-lockfile --network-timeout 9000000
-              if: steps.cache.outputs.cache-hit != 'true'
-              env:
-                  NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-                  SKIP_DOWNLOAD_MEDIA_ENGINE: true
+      - run: yarn install --frozen-lockfile --network-timeout 9000000
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+          SKIP_DOWNLOAD_MEDIA_ENGINE: true
 
-            - uses: actions-ecosystem/action-get-merged-pull-request@v1
-              id: get-merged-pull-request
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions-ecosystem/action-get-merged-pull-request@v1
+        id: get-merged-pull-request
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
 
-            - name: Attempt to pick merge commit to stopship branch
-              shell: bash {0}
-              env:
-                  MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
-                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
-                  COMMENT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  # Verify the stopship branch exists
-                  REMOTE_EXISTS=`git ls-remote --heads origin stopship`;
-
-                  # If it doesn't create a stopship branch pointing at master
-                  if [[ -z $REMOTE_EXISTS ]]; then
-                    git checkout main;
-                    git checkout -b stopship;
-                    git checkout staging;
-                  fi
-
-                  MERGED_PR_NUMBER=`
-                    # Get the last commit message
-                    git log -1 --pretty=%B | 
-                    head -1 | 
-                    # Extract merge commit PR number
-                    sed -r 's/Merge pull request #([0-9]+).*/\1/' | 
-                    # or squash commit PR number
-                    sed -r 's/.* \(#([0-9]+)\)/\1/' | 
-                    # Replace everything but the numbers
-                    sed 's/[a-zA-Z ]*//'
-                  `;
-
-                  if [[ -z $MERGED_PR_NUMBER ]]; then
-                    echo "Pushed directly to staging, no PR detected, skipping stopship PR logic."
-                    exit 0;
-                  fi
-
-                  ~/auto label --pr $MERGED_PR_NUMBER --exists stopship;
-                  label_exit_status=$?;
-
-                  # If the last PR merged has the stopship label
-                  if [ $label_exit_status -eq 0 ]; then
-                      COMMIT_TO_PICK=`git rev-parse HEAD`;
-                      STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
-
-                      git checkout stopship;
-                      echo "Attempting cherry pick..."
-                      git cherry-pick -m 1 $COMMIT_TO_PICK;
-                      pick_exit_status=$?;
-
-                      # Cherry pick successful, try to push commit.
-                      if [ $pick_exit_status -eq 0 ]; then
-                          echo "Pushing stopship branch..."
-                          git push origin stopship;
-                          push_exit_status=$?;
-                      fi
-
-                      if [[ -z $STOPSHIP_PR ]]; then
-                        # If there is no stopship PR and picked failed, create empty commit and push.
-                        # The empty commit enables us to open a PR to comment on.
-                        if [[ $pick_exit_status -eq 1 ]]; then
-                          git reset --hard HEAD;
-                        fi
-
-                        echo "Creating empty for stopship PR...";
-                        git commit --allow-empty -m "Create stopship PR";
-                        git push origin stopship;
-
-                        echo "Creating stopship PR..."
-                        node ./.github/workflows/scripts/create-stopship-pr.js;
-                        STOPSHIP_PR=`node ./.github/workflows/scripts/get-stopship-pr.js`;
-                        echo "Stopship PR created: #$STOPSHIP_PR"
-                      fi
-
-                      # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
-                      if [[ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]]; then
-                        GH_TOKEN=$COMMENT_GITHUB_TOKEN ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
-                        exit 1;
-                      fi
-                  fi
+      - name: Attempt to pick merge commit to stopship branch
+        shell: bash {0}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          git checkout -b test-branch
+          touch foo;
+          git add foo;
+          git commit -m "test commit"
+          git push https://${GITHUB_ACTOR}:${GH_TOKEN}@github.com/hipstersmoothie/stopship-actions-test.git test-branch;
