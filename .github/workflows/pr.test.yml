@@ -1,0 +1,7 @@
+name: pr-test
+on: [push]
+jobs:
+    install:
+        runs-on: ubuntu-18.04
+        steps:
+            - run: echo true
