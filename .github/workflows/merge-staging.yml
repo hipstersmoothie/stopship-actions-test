@@ -9,8 +9,12 @@ jobs:
         runs-on: ubuntu-18.04
         steps:
             - uses: actions/checkout@v2
+              with:
+                persist-credentials: false
 
             - name: Prepare repository
+              env:
+                  GH_TOKEN: ${{ secrets.GH_TOKEN }}
               run: |
                   git fetch --unshallow;
 
@@ -21,6 +25,7 @@ jobs:
 
                   git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
                   git config --global user.name "github-actions[bot]"
+                  git remote set-url origin https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git
 
             - name: restore workspace cache
               uses: actions/cache@master
