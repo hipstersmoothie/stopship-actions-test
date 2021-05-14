@@ -98,7 +98,7 @@ jobs:
                       # Cherry pick successful, try to push commit.
                       if [ $pick_exit_status -eq 0 ]; then
                           echo "Pushing stopship branch..."
-                          git push https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
+                          git push https://x-access-token:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
                           push_exit_status=$?;
                       fi
 
@@ -111,7 +111,7 @@ jobs:
 
                         echo "Creating empty for stopship PR...";
                         git commit --allow-empty -m "Create stopship PR";
-                        git push https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
+                        git push https://x-access-token:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
 
                         echo "Creating stopship PR..."
                         node ./.github/workflows/scripts/create-stopship-pr.js;
