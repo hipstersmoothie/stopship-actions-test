@@ -10,7 +10,7 @@ jobs:
         steps:
             - uses: actions/checkout@v2
               with:
-                persist-credentials: false
+                  token: ${{ secrets.GH_TOKEN }}
 
             - name: Prepare repository
               env:
@@ -55,7 +55,7 @@ jobs:
               env:
                   MERGED_PR: ${{ steps.get-merged-pull-request.outputs.number }}
                   GH_TOKEN: ${{ secrets.GH_TOKEN }}
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  COMMENT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
                   # Verify the stopship branch exists
                   REMOTE_EXISTS=`git ls-remote --heads origin stopship`;
@@ -123,7 +123,7 @@ jobs:
 
                       # If either cherry pick or push fails, post a comment to the stopship PR alerting maintainers.
                       if [[ $push_exit_status -eq 1 || $pick_exit_status -eq 1 ]]; then
-                        GH_TOKEN=$GITHUB_TOKEN ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
+                        GH_TOKEN=$COMMENT_GITHUB_TOKEN ~/auto comment --pr $STOPSHIP_PR --context $COMMIT_TO_PICK -m "Automatic cherry pick failed, you will have to manually cherry-pick the merge commit for #$MERGED_PR";
                         exit 1;
                       fi
                   fi
