@@ -24,8 +24,6 @@ jobs:
                   git config --global user.email "lisowski54@gmail.com"
                   git config --global user.name "Andrew Lisowski"
 
-                  git remote set-url origin https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git                  
-
             - name: restore workspace cache
               uses: actions/cache@master
               id: cache
@@ -100,7 +98,7 @@ jobs:
                       # Cherry pick successful, try to push commit.
                       if [ $pick_exit_status -eq 0 ]; then
                           echo "Pushing stopship branch..."
-                          git push origin stopship;
+                          git push https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
                           push_exit_status=$?;
                       fi
 
@@ -113,7 +111,7 @@ jobs:
 
                         echo "Creating empty for stopship PR...";
                         git commit --allow-empty -m "Create stopship PR";
-                        git push origin stopship;
+                        git push https://hipstermoothie:$GH_TOKEN@github.com/hipstersmoothie/stopship-actions-test.git stopship;
 
                         echo "Creating stopship PR..."
                         node ./.github/workflows/scripts/create-stopship-pr.js;
